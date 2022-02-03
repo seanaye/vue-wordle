@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onUnmounted } from 'vue'
-import { getWordOfTheDay, allWords } from './words'
+import { getWordOfTheDay, allWords,answers } from './words'
 import Keyboard from './Keyboard.vue'
 import { LetterState } from './types'
 
-// Get word of the day
+// Get word of the day 
 const answer = getWordOfTheDay()
 
 // Board state. Each tile is represented as { letter, state }
@@ -16,6 +16,91 @@ const board = $ref(
     }))
   )
 )
+
+//function to generate random word
+function randomWord(answer: string, allowedWords: string[]){
+    let guess: string = allowedWords[Math.floor(Math.random() * allowedWords.length)];
+
+    //if random word happens to be the same, change until they are distinct
+    while (guess == answer) {
+        guess = allowedWords[Math.floor(Math.random() * allowedWords.length)];
+    }
+    return guess;
+}
+//call the function initially with answers array.
+let guess = randomWord(answer, answers);
+
+//generate sequence of 5 (yellow/green/grey) based
+//on how the random word and answer match
+function info(guess: string, answer: string){
+    let sequence: string[] = [];
+
+    const guessLetters: (string | null)[] = guess.split('');
+    const answerLetters: (string | null)[] = answer.split('');
+
+    answerLetters.forEach(function (item, index) {
+      //console.log(item, guessLetters[index]);
+       if (item == guessLetters[index]){
+           sequence.push('green');
+       } else if (answerLetters.includes(guessLetters[index])){
+           sequence.push('yellow');
+       } else {
+           sequence.push('grey');
+       }
+    });
+    return sequence;
+}
+
+//Get list of all words X in current allowed word list
+// such that INFO(currentGuess, X) = SEQ1
+function shortArray(currentGuess: string, allowedWords: string[], sequence: string[]){  
+  curList = [];  
+  allowedWords.forEach(function(item, index){
+      if(info(currentGuess, allowedWords[index]).join('') === sequence.join('')){
+          curList.push(allowedWords[index]);
+      }
+  })
+  console.log(curList, 'NL');
+  return curList;
+}
+
+//declare some global variables
+let simulationComplete: boolean = false;
+let curList: string[] = [];
+
+function solveGame(answer: string, allowedWords: string[], guess: string){
+    //append all sequences so this = [[seq1],[seq2], ... , [seqN]]
+    let totalSequence: string[] = [];
+    let i: number = 0;
+    
+    //continue until the entire sequence is green
+    while(!simulationComplete && i < 7){
+      console.log(answer, 'ans', guess, 'guess');
+      const currentSequence = info(guess, answer);
+      console.log(currentSequence, 'curSQ');
+      //append current sequence
+      totalSequence.push(...currentSequence);
+
+      //if the sequence is all green, terminate the game
+      if (currentSequence.join('') == 'greengreengreengreengreen'){
+          simulationComplete = true;
+          break;
+      }
+
+      shortArray(guess, allowedWords, currentSequence);
+      //update the allowedWords array to include only new words
+      allowedWords = curList;
+      //update the guess with new word array
+      guess = randomWord(answer,curList);
+      i = i+1;
+    }
+    console.log(totalSequence);
+    return totalSequence;
+}
+solveGame(answer, answers, guess);
+
+
+
 
 // Current active row.
 let currentRowIndex = $ref(0)
@@ -179,13 +264,14 @@ function genResultGrid() {
     </div>
   </Transition>
   <header>
-    <h1>VVORDLE</h1>
+    <h1>INVERDLE</h1>
+    <!-- Link to source code
     <a
       id="source-link"
       href="https://github.com/yyx990803/vue-wordle"
       target="_blank"
       >Source</a
-    >
+    >-->
   </header>
   <div id="board">
     <div
