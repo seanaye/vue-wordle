@@ -7,16 +7,6 @@ import { LetterState } from './types'
 // Get word of the day 
 const answer = getWordOfTheDay()
 
-// Board state. Each tile is represented as { letter, state }
-const board = $ref(
-  Array.from({ length: 6 }, () =>
-    Array.from({ length: 5 }, () => ({
-      letter: '',
-      state: LetterState.INITIAL
-    }))
-  )
-)
-
 //function to generate random word
 function randomWord(answer: string, allowedWords: string[]){
     let guess: string = allowedWords[Math.floor(Math.random() * allowedWords.length)];
@@ -74,7 +64,7 @@ function solveGame(answer: string, allowedWords: string[], guess: string){
     let i: number = 0;
     
     //continue until the entire sequence is green
-    while(!simulationComplete && i < 7){
+    while(!simulationComplete){
       console.log(answer, 'ans', guess, 'guess');
       const currentSequence = info(guess, answer);
       console.log(currentSequence, 'curSQ');
@@ -93,14 +83,24 @@ function solveGame(answer: string, allowedWords: string[], guess: string){
       //update the guess with new word array
       guess = randomWord(answer,curList);
       i = i+1;
+      if (i>= 6){
+        break;
+      }
     }
     console.log(totalSequence);
     return totalSequence;
 }
 solveGame(answer, answers, guess);
 
-
-
+// Board state. Each tile is represented as { letter, state }
+const board = $ref(
+  Array.from({ length: 6 }, () =>
+    Array.from({ length: 5 }, () => ({
+      letter: '',
+      state: LetterState.INITIAL
+    }))
+  )
+)
 
 // Current active row.
 let currentRowIndex = $ref(0)
