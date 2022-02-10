@@ -8,14 +8,8 @@ import { LetterState } from './types'
 const answer = getWordOfTheDay()
 
 //select a random word
-function randomWord(answer: string, allowedWords: string[], iterations: number){
-    let guess: string = allowedWords[Math.floor(Math.random() * allowedWords.length)];
-
-    //if random word happens to be the same, change until they are distinct
-    //iterations set to min of 2 to ensure 3 steps at least
-    while (guess == answer && iterations <= 2) {
-        guess = allowedWords[Math.floor(Math.random() * allowedWords.length)];
-    }
+function randomWord(answer: string, allowedWords: string[]){
+    let guess: string = allowedWords[Math.floor(Math.random() * allowedWords.length)]; 
     return guess;
 }
 //generate sequence of 5 (yellow/green/grey) based on how the random word and answer match
@@ -28,60 +22,103 @@ function info(guess: string, answer: string){
     answerLetters.forEach(function (item, index) {
       //console.log(item, guessLetters[index]);
        if (item == guessLetters[index]){
-           sequence.push('green');
+           sequence = [...sequence, 'green'];
        } else if (answerLetters.includes(guessLetters[index])){
-           sequence.push('yellow');
+           sequence = [...sequence, 'yellow'];
        } else {
-           sequence.push('grey');
+           sequence = [...sequence, 'grey'];
        }
     });
     return sequence;
 }
 //Get list of all words X in current allowed word list such that INFO(currentGuess, X) = SEQ1
-function shortArray(currentGuess: string, allowedWords: string[], sequence: string[]){  
+function createArray(currentGuess: string, allowedWords: string[], sequence: string[]){  
   curList = [];  
   allowedWords.forEach(function(item, index){
       if(info(currentGuess, allowedWords[index]).join('') === sequence.join('')){
-          curList.push(allowedWords[index]);
+        curList = [...curList, allowedWords[index]];
       }
   })
   console.log(curList, 'NL');
   return curList;
 }
-let simulationComplete: boolean = false;
-let curList: string[] = [];
-//initial guess
-let guess = randomWord(answer, answers, 0);
 //solve da game
 function solveGame(answer: string, allowedWords: string[], guess: string){
     //append all sequences so this = [[seq1],[seq2], ... , [seqN]]
     let totalSequence: string[] = [];
-    let i: number = 1;
+    let iterations: number = 0;
     
     while(!simulationComplete){
-      //console.log(answer, 'ans', guess, 'guess');
+      iterations++;
+      console.log(answer, 'ans', guess, 'guess');
       const currentSequence = info(guess, answer);
       totalSequence.push(...currentSequence);
 
       //if the sequence is all green, terminate the game
       if (currentSequence.join('') == 'greengreengreengreengreen') break;
 
-      shortArray(guess, allowedWords, currentSequence);
+      createArray(guess, allowedWords, currentSequence);
       //update the allowedWords array to include only new words
       allowedWords = curList;
+
       //update the guess with a word from new word array
-      guess = randomWord(answer,curList, i);
-      i = i+1;
+      //only allow a max of 6 iteration
+      if (iterations >= 5){
+        guess = answer;
+      } else {
+        guess = randomWord(answer, curList);
+      }
     }
-    console.log(totalSequence);
     return totalSequence;
 }
-solveGame(answer, answers, guess);
 
+//check the word and compare to sequence
+function sequenceCheck(guess:string, allowedWords:string[], answer:string){
+    //generate sequence of guess 
+    const curLongSequence = info(guess, answer);
+    console.log(curLongSequence, 'CLS');
+    //list of words Y in long
+    createArray(guess,allowedWords,curLongSequence);
+}
+
+//check that the word matches the row prompt
+function checkTileSequence(guess:string, answer:string){
+  let checkSequenceList: string[] = [];
+  currentRow.forEach(function(item, index){
+    if(currentRow[index].state == "present"){
+      checkSequenceList = [...checkSequenceList, 'yellow'];
+    } else if (currentRow[index].state == "correct"){
+      checkSequenceList = [...checkSequenceList, 'green'];
+    } else {
+      checkSequenceList = [...checkSequenceList, 'grey'];
+    }
+  });
+
+  if (info(guess, answer).join('') ===  checkSequenceList.join('')){
+    showMessage('Well done!');
+    return true;
+  } else {
+    shake()
+    showMessage('Does not match row sequence')
+    return false;
+  }
+}
+
+
+let simulationComplete: boolean = false;
+let curList: string[] = [];
+//initial guess & ensure it's not the answer right away
+let guess: string = '';
+do {
+  guess = randomWord(answer, answers);
+} while (guess == answer);
+
+//this is the sequence of grey, yellow, green
+let prompt: string[] = solveGame(answer, answers, guess);
 
 // Board state. Each tile is represented as { letter, state }
 const board = $ref(
-  Array.from({ length: 6 }, () =>
+  Array.from({ length: (prompt.length/5) }, () =>
     Array.from({ length: 5 }, () => ({
       letter: '',
       state: LetterState.INITIAL
@@ -89,10 +126,31 @@ const board = $ref(
   )
 )
 
+//go through board and set the letters/tiles as the prompt
+function setBoard (prompt:string[]){
+  //each row
+  for (let i:number = 0; i<prompt.length/5; i++){
+    //each column
+    for (let j:number = 0; j<5; j++){
+      if (prompt[(i*5 + j)] == 'grey'){
+        board[i][j].state = LetterState.ABSENT;
+      } else if (prompt[(i*5+j)] == 'yellow'){
+        board[i][j].state = LetterState.PRESENT;
+      } else {
+        board[i][j].state = LetterState.CORRECT;
+      }
+      //show the final row
+      if(i == (prompt.length/5 -1)){
+        board[i][j].letter = answer.split('')[j];
+      }
+    }
+  }
+}
+setBoard(prompt);
+
 // Current active row.
 let currentRowIndex = $ref(0)
 const currentRow = $computed(() => board[currentRowIndex])
-
 // Feedback state: message and shake
 let message = $ref('')
 let grid = $ref('')
@@ -142,6 +200,8 @@ function clearTile() {
   }
 }
 
+//every time enter is hit, run this
+let updatedLongList: string[] = [];
 function completeRow() {
   if (currentRow.every((tile) => tile.letter)) {
     const guess = currentRow.map((tile) => tile.letter).join('')
@@ -149,9 +209,29 @@ function completeRow() {
       shake()
       showMessage(`Not in word list`)
       return
+    } 
+    //algorithm 3.a
+    if (!checkTileSequence(guess, answer)) return;
+
+    //get Long1 on the first guess
+    if (currentRowIndex == 0){
+      createArray(guess, allWords, info(guess, answer));
+      updatedLongList = curList;
+    } else {
+      //algorithm part 3.b.ii
+      let str = guess;
+      if(updatedLongList.some(v => str.includes(v)) && !currentRow.every((tile, index) => tile.letter === answer[index])){
+        sequenceCheck(guess, updatedLongList, answer);
+        updatedLongList = curList;
+      } else {
+        shake()
+        showMessage('Make sure your answer is consistent with other rows!')
+        return
+      }    
     }
 
     const answerLetters: (string | null)[] = answer.split('')
+
     // first pass: mark correct ones
     currentRow.forEach((tile, i) => {
       if (answerLetters[i] === tile.letter) {
@@ -161,7 +241,7 @@ function completeRow() {
     })
     // second pass: mark the present
     currentRow.forEach((tile) => {
-      if (!tile.state && answerLetters.includes(tile.letter)) {
+      if (tile.state !== LetterState.CORRECT && tile.state !== LetterState.ABSENT && answerLetters.includes(tile.letter)) {
         tile.state = LetterState.PRESENT
         answerLetters[answerLetters.indexOf(tile.letter)] = null
         if (!letterStates[tile.letter]) {
@@ -171,7 +251,7 @@ function completeRow() {
     })
     // 3rd pass: mark absent
     currentRow.forEach((tile) => {
-      if (!tile.state) {
+      if (tile.state !== LetterState.PRESENT && tile.state !== LetterState.CORRECT) {
         tile.state = LetterState.ABSENT
         if (!letterStates[tile.letter]) {
           letterStates[tile.letter] = LetterState.ABSENT
@@ -180,19 +260,14 @@ function completeRow() {
     })
 
     allowInput = false
-    if (currentRow.every((tile) => tile.state === LetterState.CORRECT)) {
+    if (currentRowIndex == board.length - 2) {
       // yay!
       setTimeout(() => {
         grid = genResultGrid()
-        showMessage(
-          ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'][
-            currentRowIndex
-          ],
-          -1
-        )
+        showMessage('Splendid');
         success = true
       }, 1600)
-    } else if (currentRowIndex < board.length - 1) {
+    } else if (currentRowIndex < board.length - 2) {
       // go the next row
       currentRowIndex++
       setTimeout(() => {
@@ -201,7 +276,7 @@ function completeRow() {
     } else {
       // game over :(
       setTimeout(() => {
-        showMessage(answer.toUpperCase(), -1)
+        showMessage('This game is hard!', -1)
       }, 1600)
     }
   } else {
@@ -235,7 +310,7 @@ const icons = {
 
 function genResultGrid() {
   return board
-    .slice(0, currentRowIndex + 1)
+    .slice(0, currentRowIndex + 2)
     .map((row) => {
       return row.map((tile) => icons[tile.state]).join('')
     })
