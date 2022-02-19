@@ -46,7 +46,7 @@ const rows = [
 
 <style scoped>
 #keyboard {
-  margin: 30px 8px 0;
+  margin: 12px 8px 0;
   user-select: none;
 }
 .row {
@@ -58,6 +58,7 @@ const rows = [
 .spacer {
   flex: 0.5;
 }
+
 button {
   font-family: inherit;
   font-weight: bold;

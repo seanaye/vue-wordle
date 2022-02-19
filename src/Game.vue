@@ -55,7 +55,6 @@ function removeItemOnce(array: (string | null)[], value:(string | null)) {
   return array;
 }
 
-
 //Get list of all words X in current allowed word list such that INFO(currentGuess, X) = SEQ1
 function createArray(currentGuess: string, allowedWords: string[], sequence: string[]){  
   curList = [];  
@@ -225,6 +224,19 @@ function clearTile() {
   }
 }
 
+function clearBoard() {
+  while(currentRowIndex >= 0){
+    for (const tile of [...currentRow].reverse()) {
+      if (tile.letter) {
+        tile.letter = ''
+      }
+    }
+    currentRowIndex--;
+  }
+  currentRowIndex++;
+}
+
+
 //every time enter is hit, run this
 let updatedLongList: string[] = [];
 function completeRow() {
@@ -293,8 +305,7 @@ function completeRow() {
         success = true
       }, 1600)
     } else if (currentRowIndex < board.length - 2) {
-      // go the next row
-      currentRowIndex++
+      currentRowIndex++;
       setTimeout(() => {
         allowInput = true
       }, 1600)
@@ -310,7 +321,7 @@ function completeRow() {
   }
 }
 
-function showMessage(msg: string, time = 1000) {
+function showMessage(msg: string, time = 1600) {
   message = msg
   if (time > 0) {
     setTimeout(() => {
@@ -388,6 +399,13 @@ function genResultGrid() {
       </div>
     </div>
   </div>
+  <div class="clear">
+     <button 
+      id="clearBtn"
+      @click="clearBoard">
+      Clear Board
+    </button>
+  </div>
   <Keyboard @key="onKey" :letter-states="letterStates" />
 </template>
 
@@ -403,6 +421,29 @@ function genResultGrid() {
   width: min(350px, calc(var(--height) / 6 * 5));
   margin: 0px auto;
 }
+#clearBtn {
+  padding: 12px;
+  margin: 0px 8px 8px 8px;
+  font-family: inherit;
+  font-weight: bold;
+  border: 0;
+  height: auto;
+  background-color: #1a1a1b;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  flex: 1;
+  text-transform: uppercase;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.3);
+  transition: all 0.2s 1.5s;
+}
+.clear {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .message {
   position: absolute;
   left: 50%;
