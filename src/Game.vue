@@ -12,25 +12,50 @@ function randomWord(answer: string, allowedWords: string[]){
     let guess: string = allowedWords[Math.floor(Math.random() * allowedWords.length)]; 
     return guess;
 }
+
 //generate sequence of 5 (yellow/green/grey) based on how the random word and answer match
 function info(guess: string, answer: string){
-    let sequence: string[] = [];
+  let sequence: string[] = ['grey', 'grey', 'grey', 'grey', 'grey'];
+  let trackLetters: string[] = ['grey', 'grey', 'grey', 'grey', 'grey'];
 
-    const guessLetters: (string | null)[] = guess.split('');
-    const answerLetters: (string | null)[] = answer.split('');
+  const guessLetters: (string | null)[] = guess.split('');
+  const answerLetters: (string | null)[] = answer.split('');
 
-    answerLetters.forEach(function (item, index) {
-      //console.log(item, guessLetters[index]);
-       if (item == guessLetters[index]){
-           sequence = [...sequence, 'green'];
-       } else if (answerLetters.includes(guessLetters[index])){
-           sequence = [...sequence, 'yellow'];
-       } else {
-           sequence = [...sequence, 'grey'];
-       }
-    });
-    return sequence;
+  //for each i from 1 to 5
+  guessLetters.forEach(function (item, index){
+    //if the ith letter (item) of guess == ith letter of answer
+    if (item == answerLetters[index] && trackLetters[index] == 'grey'){
+      //mark the ith letter as used
+      trackLetters[index] = 'green';
+      sequence[index] = 'green';
+    }
+  })
+
+  //for each j from 1 to 5
+  guessLetters.forEach(function(item, index){
+    //if the jth letter of guess is not equal to the jth letter of answer
+    //but there exists some letter in answer that is equal but not used ('grey')
+    if (item != answerLetters[index] && answerLetters.includes(item)){
+      answerLetters.forEach(function(thing, e){
+        if(answerLetters[e] == item && trackLetters[e] == 'grey'){
+          trackLetters[e] = 'yellow';
+          sequence[index] = 'yellow';
+        } 
+      })
+    } 
+  })
+  return sequence;
 }
+
+function removeItemOnce(array: (string | null)[], value:(string | null)) {
+  var index = array.indexOf(value);
+  if (index > -1) {
+    array.splice(index, 1);
+  }
+  return array;
+}
+
+
 //Get list of all words X in current allowed word list such that INFO(currentGuess, X) = SEQ1
 function createArray(currentGuess: string, allowedWords: string[], sequence: string[]){  
   curList = [];  
@@ -55,7 +80,7 @@ function solveGame(answer: string, allowedWords: string[], guess: string){
       totalSequence.push(...currentSequence);
 
       //if the sequence is all green, terminate the game
-      if (currentSequence.join('') == 'greengreengreengreengreen') break;
+      if(currentSequence.length === 5 && currentSequence.every(e => e === "green")) break;
 
       createArray(guess, allowedWords, currentSequence);
       //update the allowedWords array to include only new words
