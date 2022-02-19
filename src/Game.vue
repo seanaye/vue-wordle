@@ -182,7 +182,8 @@ let shakeRowIndex = $ref(-1)
 let success = $ref(false)
 
 // Keep track of revealed letters for the virtual keyboard
-const letterStates: Record<string, LetterState> = $ref({})
+let letterStates: Record<string, LetterState> = $ref({})
+
 
 // Handle keyboard input.
 let allowInput = true
@@ -225,6 +226,7 @@ function clearTile() {
 }
 
 function clearBoard() {
+  console.log("clear board")
   while(currentRowIndex >= 0){
     for (const tile of [...currentRow].reverse()) {
       if (tile.letter) {
@@ -234,6 +236,7 @@ function clearBoard() {
     currentRowIndex--;
   }
   currentRowIndex++;
+  letterStates = {}
 }
 
 
@@ -374,6 +377,7 @@ function genResultGrid() {
   <div id="board">
     <div
       v-for="(row, index) in board"
+      :key="index"
       :class="[
         'row',
         shakeRowIndex === index && 'shake',
@@ -382,6 +386,7 @@ function genResultGrid() {
     >
       <div
         v-for="(tile, index) in row"
+        :key="index"
         :class="['tile', tile.letter && 'filled', tile.state && 'revealed']"
       >
         <div class="front" :style="{ transitionDelay: `${index * 300}ms` }">

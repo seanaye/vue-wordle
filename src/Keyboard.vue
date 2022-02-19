@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { watchEffect } from 'vue'
 import { LetterState } from './types'
 
-defineProps<{
+const props = defineProps<{
   letterStates: Record<string, LetterState>
 }>()
+
+console.log({ ...props.letterStates})
+watchEffect(() => console.log({...props.letterStates}))
 
 defineEmits<{
   (e: 'key', key: string): void
@@ -18,10 +22,11 @@ const rows = [
 
 <template>
   <div id="keyboard">
-    <div class="row" v-for="(row, i) in rows">
+    <div class="row" v-for="(row, i) in rows" :key="i">
       <div class="spacer" v-if="i === 1"></div>
       <button
         v-for="key in row"
+        :key="key"
         :class="[key.length > 1 && 'big', letterStates[key]]"
         @click="$emit('key', key)"
       >
